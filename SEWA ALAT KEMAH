@@ -1,0 +1,229 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_TRANSAKSI 10
+#define MAX_ALAT 5
+
+struct Peralatan {
+    char nama[30];
+    int harga;
+};
+
+
+struct Peralatan daftar_alat[MAX_ALAT] = {
+    {"Tenda Kapasitas 4 Orang", 50000},
+    {"Sleeping Bag", 15000},
+    {"Kompor Portable", 20000},
+    {"Matras Camping", 10000},
+    {"Lampu Camping", 12000}
+};
+
+
+char history_nama[MAX_TRANSAKSI][50];
+char history_alat[MAX_TRANSAKSI][150]; 
+int history_lama[MAX_TRANSAKSI];
+int history_total[MAX_TRANSAKSI];
+int jumlah_transaksi = 0;
+int total_pendapatan = 0;
+
+void tampilkanDaftarPeralatan() {
+    printf("\n========================================\n");
+    printf("       DAFTAR PERALATAN CAMPING         \n");
+    printf("========================================\n");
+    printf("No. | Nama Peralatan          | Harga/Hari\n");
+    printf("----------------------------------------\n");
+    for (int i = 0; i < MAX_ALAT; i++) {
+        printf("%-3d | %-23s | Rp%d\n", i + 1, daftar_alat[i].nama, daftar_alat[i].harga);
+    }
+    printf("========================================\n");
+}
+
+
+int hitungDiskon(int lama, int subtotal) {
+    int diskon_persen = 0;
+    if (lama >= 3 && lama <= 4) {
+        diskon_persen = 10;
+    } else if (lama >= 5) {
+        diskon_persen = 15;
+    }
+    return (subtotal * diskon_persen) / 100;
+}
+
+void tampilkanRiwayat() {
+    printf("\n========================================\n");
+    printf("            RIWAYAT TRANSAKSI           \n");
+    printf("========================================\n");
+    if (jumlah_transaksi == 0) {
+        printf("Belum ada transaksi penyewaan.\n");
+    } else {
+        printf("No | Nama Penyewa       | Peralatan Terpilih             | Total\n");
+        printf("----------------------------------------------------------------\n");
+        for (int i = 0; i < jumlah_transaksi; i++) {
+            printf("%-2d | %-18s | %-30s | Rp%d\n", 
+                i + 1, 
+                history_nama[i], 
+                history_alat[i], 
+                history_total[i]
+            );
+        }
+        printf("----------------------------------------------------------------\n");
+        printf("Jumlah Transaksi : %d\n", jumlah_transaksi);
+        printf("Total Pendapatan : Rp%d\n", total_pendapatan);
+    }
+    printf("========================================\n");
+}
+
+int main() {
+    int pilihan;
+    char kembali;
+
+    do {
+        printf("\n========================================\n");
+        printf("             ADVENTURE CAMP             \n");
+        printf("      SISTEM PENYEWAAN PERALATAN        \n");
+        printf("========================================\n");
+        printf("1. Lihat Daftar Peralatan\n");
+        printf("2. Sewa Peralatan\n");
+        printf("3. Lihat Riwayat Transaksi\n");
+        printf("4. Keluar\n");
+        printf("========================================\n");
+        printf("Pilih menu [1-4]: ");
+        
+        if (scanf("%d", &pilihan) != 1) {
+            printf("Input tidak valid! Harap masukkan angka.\n");
+            while(getchar() != '\n');
+            continue;
+        }
+
+        switch (pilihan) {
+            case 1:
+                tampilkanDaftarPeralatan();
+                break;
+                
+            case 2: {
+                if (jumlah_transaksi >= MAX_TRANSAKSI) {
+                    printf("\n[PEMBERITAHUAN] Kapasitas riwayat transaksi sudah penuh (maksimal 10).\n");
+                    break;
+                }
+
+                char nama_penyewa[50];
+                int keranjang_jumlah[MAX_ALAT] = {0}; 
+                int lama_sewa = 0;
+                int ada_pesanan = 0;
+
+                printf("\n--- FORM PENYEWAAN PERALATAN ---\n");
+                printf("Masukkan Nama Penyewa: ");
+                scanf(" %[^\n]s", nama_penyewa);
+
+                printf("\n===========================================================\n");
+                printf("             MASUKKAN JUMLAH UNIT TIAP PERALATAN           \n");
+                printf("        (Isi 0 jika tidak menyewa barang tersebut)         \n");
+                printf("===========================================================\n");
+                printf("Nama Peralatan             | Harga/Hari  | Jumlah (Input)\n");
+                printf("-----------------------------------------------------------\n");
+
+                for (int i = 0; i < MAX_ALAT; i++) {
+                    printf("%-26s | Rp%-9d | ", daftar_alat[i].nama, daftar_alat[i].harga);
+                    scanf("%d", &keranjang_jumlah[i]);
+
+                    if (keranjang_jumlah[i] > 0) {
+                        ada_pesanan = 1;
+                    }
+                }
+
+                if (!ada_pesanan) {
+                    printf("\n[PERINGATAN] Anda tidak memasukkan jumlah untuk peralatan apa pun. Transaksi dibatalkan.\n");
+                    break;
+                }
+
+               
+                do {
+                    printf("\nMasukkan lama sewa (dalam hari, minimal 1): ");
+                    scanf("%d", &lama_sewa);
+                    if (lama_sewa < 1) {
+                        printf("Lama sewa minimal 1 hari!\n");
+                    }
+                } while (lama_sewa < 1);
+
+                
+                int subtotal_semua = 0;
+                char ringkasan_alat[150] = "";
+
+                for (int i = 0; i < MAX_ALAT; i++) {
+                    if (keranjang_jumlah[i] > 0) {
+                        int subtotal_item = daftar_alat[i].harga * keranjang_jumlah[i] * lama_sewa;
+                        subtotal_semua += subtotal_item;
+
+                       
+                        char temp[50];
+                        sprintf(temp, "%dx %s, ", keranjang_jumlah[i], daftar_alat[i].nama);
+                        strcat(ringkasan_alat, temp);
+                    }
+                }
+
+               
+                int diskon = hitungDiskon(lama_sewa, subtotal_semua);
+                int total_bayar = subtotal_semua - diskon;
+
+              
+                printf("\n========================================\n");
+                printf("          ADVENTURE CAMP                \n");
+                printf("          STRUK PENYEWAAN               \n");
+                printf("========================================\n");
+                printf("Nama Penyewa   : %s\n", nama_penyewa);
+                printf("Lama Sewa      : %d hari\n", lama_sewa);
+                printf("----------------------------------------\n");
+                printf("Detail Pesanan :\n");
+                for (int i = 0; i < MAX_ALAT; i++) {
+                    if (keranjang_jumlah[i] > 0) {
+                        int biaya_item = daftar_alat[i].harga * keranjang_jumlah[i] * lama_sewa;
+                        printf("- %dx %s = Rp%d\n", keranjang_jumlah[i], daftar_alat[i].nama, biaya_item);
+                    }
+                }
+                printf("----------------------------------------\n");
+                printf("Subtotal       : Rp%d\n", subtotal_semua);
+                
+                int diskon_persen = (lama_sewa >= 5) ? 15 : ((lama_sewa >= 3) ? 10 : 0);
+                printf("Diskon (%d%%)    : Rp%d\n", diskon_persen, diskon);
+                printf("----------------------------------------\n");
+                printf("TOTAL BAYAR    : Rp%d\n", total_bayar);
+                printf("========================================\n");
+                printf("Terima kasih telah menggunakan layanan kami!\n");
+
+              
+                strcpy(history_nama[jumlah_transaksi], nama_penyewa);
+                strcpy(history_alat[jumlah_transaksi], ringkasan_alat);
+                history_lama[jumlah_transaksi] = lama_sewa;
+                history_total[jumlah_transaksi] = total_bayar;
+
+                total_pendapatan += total_bayar;
+                jumlah_transaksi++;
+
+                break;
+            }
+            
+            case 3:
+                tampilkanRiwayat();
+                break;
+                
+            case 4:
+                printf("\nTerima kasih telah menggunakan program Adventure Camp!\n");
+                break;
+                
+            default:
+                printf("\nPilihan tidak valid! Masukkan angka antara 1 sampai 4.\n");
+        }
+
+        if (pilihan != 4) {
+            printf("\nKembali ke menu utama? (Y/T): ");
+            scanf(" %c", &kembali);
+            if (kembali == 'T' || kembali == 't') {
+                printf("\nTerima kasih telah menggunakan program Adventure Camp!\n");
+                break;
+            }
+        }
+
+    } while (pilihan != 4);
+
+    return 0;
+}
